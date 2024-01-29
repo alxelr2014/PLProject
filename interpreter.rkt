@@ -13,8 +13,10 @@
     (begin
         (initialize-store!)
         (init-stack!)
-        (new-stack!)
-        (value-of-stm-list pgm)))
+        (new-stack! (normal-block))
+        (init-controller!)
+        (value-of-stm-list pgm)
+    ))
 
 ; evaluate a block of statements
 (define (value-of-stm-list stmlist)
@@ -27,10 +29,11 @@
 (define (value-of-stm stm)
     (begin 
     (println stm)
+    (print-state)
     (cases statement stm
         (assign (var expr) (assignment var expr))
         (global (var) (glob var))
-        (return (expr) null)
+        (return (expr) (ret-value expr))
         (return_void () null)
         (pass () null)
         (break () null)
@@ -44,7 +47,7 @@
 
 
 (define (assignment var expr)
-    (setref!  (getref! var) (lazy-eval expr)))
+    (setref!  (getref! var) (value-of-exp expr)))
 
 (define (glob var)
     (extend-global! var (newref 0)))
@@ -70,12 +73,16 @@
 (define (for-stms iter eval_list sts)
     (if (null? eval_list) null 
         (begin 
-            (new-stack!)
+            (new-stack! (for-block))
             (setref! (getref! iter) (car eval_list))
             (value-of-stm-list sts)
             (for-stms iter (cdr eval_list) sts))))
 
 (define (func-stms name params statements)
     (setref! (getref! name) (func name params statements)))
+
+
+(define (ret-value expr)
+    (set-controller! 'ret-val))
 
 (provide (all-defined-out))

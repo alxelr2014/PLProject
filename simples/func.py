@@ -1,5 +1,5 @@
-def temp(x = 3 , y = 5):
-    print(x + y);;
+def temp(x = 4 , y = 10):
+    return x - y;;
 
-z = temp( 3 , 4 );
-z =  z + 1;
+z = temp( 3 );
+print( z );

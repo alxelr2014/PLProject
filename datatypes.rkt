@@ -26,6 +26,10 @@
   (func_params (param func_param?) (rest-params func_param*?))
   )
 
+(define (param*->list param)
+  (cases func_param* param
+    (empty-param () null)
+    (func_params (param rest-params) (append (param*->list rest-params)  (list param)))))
 
 (define-datatype expression expression?
   (binary_op (op procedure?) (left expression?) (right expression?))

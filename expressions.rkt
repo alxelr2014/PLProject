@@ -1,11 +1,14 @@
 #lang racket
 
 (require (lib "eopl.ss" "eopl"))
+(require racket/lazy-require)
 (require "datatypes.rkt")
 (#%require "datatypes.rkt")
 (require "state.rkt")
 (require "stack.rkt")
 (require "helper.rkt")
+(lazy-require ["interpreter.rkt" (value-of-stm-list)])
+
 
 (define (value-of-exp expr)
     (cases expression expr
@@ -22,7 +25,7 @@
     ))
 
 (define (lazy-eval expr)
-    (cases expression (debugger expr)
+    (cases expression expr
         (binary_op (op left right) (binary_op op (lazy-eval left) (lazy-eval right)))
         (unary_op (op operand) (unary_op op (lazy-eval operand)))
         (function_call (func params) (func-call func params))
@@ -42,12 +45,39 @@
         (scheme->expval (op val-operand))))
 
 (define (ref-var var)
-    (let ([refe (debugger(apply-stack! var))])
-        (let ([expr (debugger(deref refe))])
+    (let ([refe (apply-stack! var)])
+        (let ([expr (deref refe)])
             (value-of-exp expr))))
 
+(define (set-param param expr)
+    (setref! (getref! param) expr))
 
-(define (func-call func params)
-    (debugger func))
+(define (set-params def-params act-params)
+    (if (null? def-params) null
+        (cases func_param (car def-params) 
+                (with_default (var expr) 
+                    (if (null? act-params)
+                        (begin 
+                            (set-param var expr)
+                            (set-params (cdr def-params) act-params))
+                        (begin
+                            (set-param var (car act-params))
+                            (set-params (cdr def-params) (cdr act-params))))))))
+
+(define (get-function-statement funct)
+    (cases expression funct
+        (ref (var) (deref (getref! var)))
+        (else (println "error in function name."))
+    ))
+
+(define (func-call funct params)
+    (let ([func-def (get-function-statement funct)])
+        (cases statement  func-def
+            (func (name param stmts)
+                (begin
+                (new-stack! (func-block))
+                (set-params (param*->list param)  (expr*->list params))
+                (value-of-stm-list stmts)))
+            (else (println "Bad function call")))))
 
 (provide (all-defined-out))
