@@ -26,8 +26,6 @@
   (func_params (param func_param?) (rest-params func_param*?))
   )
 
-(define-datatype fnuction function?
-  (a-function (name string?) (param func_param*?) (stmts list?)))
 
 (define-datatype expression expression?
   (binary_op (op procedure?) (left expression?) (right expression?))

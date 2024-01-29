@@ -22,12 +22,12 @@
     ))
 
 (define (lazy-eval expr)
-    (cases expression expr
+    (cases expression (debugger expr)
         (binary_op (op left right) (binary_op op (lazy-eval left) (lazy-eval right)))
         (unary_op (op operand) (unary_op op (lazy-eval operand)))
-        (function_call (func params) null);; need to fill
+        (function_call (func params) (func-call func params))
         (list_ref (ref index) (list_ref ref (lazy-eval index)))
-        (ref (var) (deref (apply-stack! var)))
+        (ref (var) (lazy-eval (deref (apply-stack! var))))
         (atomic_list_exp (l) null)
         (else expr)))
 
@@ -42,8 +42,8 @@
         (scheme->expval (op val-operand))))
 
 (define (ref-var var)
-    (let ([refe (apply-stack! var)])
-        (let ([expr (deref refe)])
+    (let ([refe (debugger(apply-stack! var))])
+        (let ([expr (debugger(deref refe))])
             (value-of-exp expr))))
 
 

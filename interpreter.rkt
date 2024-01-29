@@ -76,6 +76,6 @@
             (for-stms iter (cdr eval_list) sts))))
 
 (define (func-stms name params statements)
-    (setref! (getref! name) (a-function name params statements)))
+    (setref! (getref! name) (func name params statements)))
 
 (provide (all-defined-out))
