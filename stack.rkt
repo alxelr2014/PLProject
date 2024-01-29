@@ -11,10 +11,10 @@
     (empty-stack)
     (push-stack (env environment?) (prev stack?)))
 
-(define (pop-stack stkc)
-    (cases stack stkc
-        (empty-stack () null)
-        (push-stack (env prev) prev)))
+(define (pop-stack!)
+    (set! main-stack (cases stack main-stack
+        (empty-stack () empty-stack)
+        (push-stack (env prev) prev))))
 
 
 (define-datatype environment environment?

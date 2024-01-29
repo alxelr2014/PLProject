@@ -26,6 +26,9 @@
   (func_params (param func_param?) (rest-params func_param*?))
   )
 
+(define-datatype fnuction function?
+  (a-function (name string?) (param func_param*?) (stmts list?)))
+
 (define-datatype expression expression?
   (binary_op (op procedure?) (left expression?) (right expression?))
   (unary_op (op procedure?) (operand expression?))
@@ -51,14 +54,23 @@
   (bool-val
     (bool boolean?))
   (null-val)
-  (list-val (lst list?)))
+  (list-val (lst expression*?)))
+
+(define (expr*->list lst)
+  (cases expression* lst
+    (empty-expr () null)
+    (expressions (expr rest-exprs) (append (expr*->list rest-exprs)  (list expr)))))
+
+(define (list->expr* lst)
+  (if (null? lst) (empty-expr) 
+    (expressions (car lst) (list->expr* (cdr lst)))))
 
 (define expval->scheme
   (lambda (val)
     (cases expval val
       (num-val (num) num)
       (bool-val (bool) bool)
-      (list-val (lst) lst)
+      (list-val (lst) (expr*->list lst))
       (null-val () null)
       (else (println "Not a expval")))))
 
@@ -67,7 +79,7 @@
     (cond
       [(number? val) (num-val val)]
       [(boolean? val) (bool-val val)]
-      [(list? val) (list-val val)]
+      [(list? val) (list->expr* val)]
       [(null? val) (null-val)])))
 
 (provide (all-defined-out))
