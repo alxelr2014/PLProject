@@ -1,19 +1,16 @@
 #lang racket
 
+(require "stack.rkt")
+
 (define the-store '())
 
 (define empty-store
     (lambda () '()))
 
-(define get-store
-    (lambda () the-store))
-
 (define initialize-store!
     (lambda ()
         (set! the-store (empty-store))))
 
-(define reference?
-    (lambda (v) (integer? v)))
 
 (define newref
     (lambda (val)
@@ -29,28 +26,27 @@
     (lambda (ref val)
         (set! the-store
             (letrec
-                ((setref-inner (lambda (store1 ref1)
+                ([setref-inner (lambda (store1 ref1)
                     (cond
-                    ((null? store1) (report-invalid-reference ref the-store))
+                    ((null? store1) (println "The store is not having it!"))
                     ((zero? ref1) (cons val (cdr store1)))
-                    (else (cons (car store1) (setref-inner (cdr store1) (- ref1 1))))))))
+                    (else (cons (car store1) (setref-inner (cdr store1) (- ref1 1))))))])
                 (setref-inner the-store ref)))))
 
 
-(define (report-no-binding-found search-var)
-    (print "Environment not having it today!"))
+(define getref!
+    (lambda (val)
+        (if (apply-stack! val) (apply-stack! val) 
+            (let ([ref  (newref val)])
+                (begin (extend-stack! val ref) ref)))))
+
+
 
 (define (report-invalid-reference ref the-stor)
     (print "Store not having it today!"))
 
-(define empty-env 
-    (lambda () (lambda (search-var) (report-no-binding-found search-var))))
 
-(define extend-env
-    (lambda (var val env) (lambda(search-var) 
-    (if (eqv? var search-var) (val)  (apply-env env search-var)))))
 
-(define apply-env
-    (lambda (env var) (env var)))
+(define print-state (lambda () (begin (println "The current state is:") (println main-stack) (println the-store))))
 
 (provide (all-defined-out))

@@ -12,5 +12,5 @@
   (let ([parsed (parse-scan (string-join (file->lines file-name)))])
     (value-of-program parsed)))
 
-(evaluate "test.py")
+(evaluate "simples/print.py")
 (provide (all-defined-out))

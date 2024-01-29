@@ -44,5 +44,31 @@
   (expressions (expr expression?) (rest-exprs expression*?))
   )
 
+
+(define-datatype expval expval?
+  (num-val
+    (num number?))
+  (bool-val
+    (bool boolean?))
+  (null-val)
+  (list-val (lst list?)))
+
+(define expval->scheme
+  (lambda (val)
+    (cases expval val
+      (num-val (num) num)
+      (bool-val (bool) bool)
+      (list-val (lst) lst)
+      (null-val () null)
+      (else (println "Not a expval")))))
+
+(define scheme->expval
+  (lambda (val)
+    (cond
+      [(number? val) (num-val val)]
+      [(boolean? val) (bool-val val)]
+      [(list? val) (list-val val)]
+      [(null? val) (null-val)])))
+
 (provide (all-defined-out))
 (#%provide (all-defined))
