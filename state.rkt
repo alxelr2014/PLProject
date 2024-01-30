@@ -47,6 +47,6 @@
 
 
 
-(define print-state (lambda () (begin (println "The current state is:") (println main-stack) (println the-store))))
+(define print-state (lambda () (begin (displayln " ") (println "The current state is:") (println (get-controller!)) (println main-stack) (println the-store) (displayln " "))))
 
 (provide (all-defined-out))

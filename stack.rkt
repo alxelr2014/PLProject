@@ -1,17 +1,21 @@
 #lang racket
 (require "datatypes.rkt")
 (require (lib "eopl.ss" "eopl"))
+(require "helper.rkt")
+(require racket/trace)
+
 
 (define-datatype stack-type stack-type?
     (normal-block)
     (for-block)
-    (func-block))
+    (funct-block))
+
 (define-datatype flow-control flow-control?
     (non)
     (cont)
     (brk)
-    (ret-val)
-    (ret-void))
+    (re-void)
+    (re-val (expr expression?)))
 
 
 (define-datatype stack stack?
@@ -28,7 +32,7 @@
 
 (define init-controller! (lambda() (set! controller (non))))
 (define set-controller! (lambda (signal) (set! controller signal)))
-
+(define get-controller! (lambda () controller))
 (define reference?
     (lambda (v) (integer? v)))
 
@@ -83,6 +87,15 @@
                 (go-down main-stack)))))
 
 
+(define top-type! (lambda () (
+    cases stack main-stack
+        (empty-stack () (println "Bad stack type."))
+        (push-stack (env prev typ)  typ))))
+ 
 (define-datatype thunks thunks?
     (a-thunk (expr expression?) (stck stack?)))
+
+;(trace top-type!)
+;(trace get-controller!)
+
 (provide (all-defined-out))

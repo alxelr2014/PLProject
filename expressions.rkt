@@ -8,6 +8,7 @@
 (require "stack.rkt")
 (require "helper.rkt")
 (lazy-require ["interpreter.rkt" (value-of-stm-list)])
+(require racket/trace)
 
 
 (define (value-of-exp expr)
@@ -75,9 +76,16 @@
         (cases statement  func-def
             (func (name param stmts)
                 (begin
-                (new-stack! (func-block))
+                (new-stack! (funct-block))
                 (set-params (param*->list param)  (expr*->list params))
-                (value-of-stm-list stmts)))
+                (new-stack! (normal-block))
+                (value-of-stm-list stmts)
+                (cases flow-control (get-controller!)
+                    (re-val (expr) (begin (set-controller! (non)) expr))
+                    (re-void () (set-controller! (non)))
+                    (else (println "Non returning function!")))))
             (else (println "Bad function call")))))
-
+(if etracing (begin 
+(trace value-of-exp)
+(trace func-call)) (println "Expression tracking is off"))
 (provide (all-defined-out))

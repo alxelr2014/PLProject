@@ -7,6 +7,9 @@
 (require "stack.rkt")
 (require "helper.rkt")
 (require "expressions.rkt")
+(require racket/trace)
+
+
 
 ; initialize the memory and stack.
 (define (value-of-program pgm)
@@ -20,30 +23,31 @@
 
 ; evaluate a block of statements
 (define (value-of-stm-list stmlist)
-    (if (null? stmlist) (pop-stack!)
-        (begin 
-            (value-of-stm (car stmlist) )
-            (value-of-stm-list (cdr stmlist)))))
+        (if (null? stmlist) (pop-stack!)
+            (if (signal-checker) (value-of-stm-list (cdr stmlist))
+                (begin 
+                    (value-of-stm (car stmlist))
+                    (value-of-stm-list (cdr stmlist))))))
 
 ; evaluate a statement
 (define (value-of-stm stm)
     (begin 
-    (println stm)
-    (print-state)
+    ;(println stm)
     (cases statement stm
         (assign (var expr) (assignment var expr))
         (global (var) (glob var))
         (return (expr) (ret-value expr))
-        (return_void () null)
+        (return_void () (ret-void))
         (pass () null)
-        (break () null)
-        (continue () null)
+        (break () (breaking))
+        (continue () (continuing))
         (func (name params statements) (func-stms name params statements))
         (if_stmt (cond_exp if_sts else_sts) (if-stms cond_exp if_sts else_sts))
         (for_stmt (iter list_exp sts) (for-init iter list_exp sts))
         (print_stmt (exprs) (printer exprs))
         (else (println "error in statement.")))
-    (print-state)))
+    ;(print-state)
+    ))
 
 
 (define (assignment var expr)
@@ -62,7 +66,7 @@
         (cases expval cond_result
             (bool-val (bool) 
                 (begin
-                    (new-stack!)
+                    (new-stack! (normal-block))
                     (if bool (value-of-stm-list if_sts) (value-of-stm-list else_sts))))
             (else (println "Invalid if condition")))))
 
@@ -75,14 +79,52 @@
         (begin 
             (new-stack! (for-block))
             (setref! (getref! iter) (car eval_list))
+            (new-stack! (normal-block))
             (value-of-stm-list sts)
-            (for-stms iter (cdr eval_list) sts))))
+            (cases flow-control (get-controller!)
+                    (cont () (begin
+                        (set-controller! (non))
+                        (for-stms iter (cdr eval_list) sts)))
+                    (brk () (set-controller! (non)))
+                    (else (for-stms iter (cdr eval_list) sts))))))
 
 (define (func-stms name params statements)
     (setref! (getref! name) (func name params statements)))
 
 
 (define (ret-value expr)
-    (set-controller! 'ret-val))
+    (set-controller! (re-val (lazy-eval expr))))
+
+(define ret-void (lambda() (set-controller! (re-void))))
+
+(define continuing (lambda () (set-controller! (cont))))
+(define breaking (lambda () (set-controller! (brk))))
+
+
+(define signal-checker (lambda()
+    (cases flow-control (get-controller!)
+        (non () #f)
+        (re-void ()
+            (cases stack-type (top-type!)
+                (funct-block () #f)
+                (else #t)))  
+        (re-val (expr)
+            (cases stack-type (top-type!)
+                (funct-block () #f)
+                (else #t)))   
+        (cont ()  
+            (cases stack-type (top-type!)
+                (for-block () #f)
+                (else #t)))
+        (brk ()  
+            (cases stack-type (top-type!)
+                (for-block () #f)
+                (else #t))))))
+
+(if itracing (begin 
+(trace value-of-program)
+(trace value-of-stm)
+(trace value-of-stm-list)
+(trace signal-checker)) (println "Intrepeter tracking is off"))
 
 (provide (all-defined-out))
