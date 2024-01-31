@@ -1,6 +1,7 @@
 #lang racket
 
 (require "stack.rkt")
+(require "helper.rkt")
 
 (define the-store '())
 
@@ -28,22 +29,25 @@
             (letrec
                 ([setref-inner (lambda (store1 ref1)
                     (cond
-                    ((null? store1) (println "The store is not having it!"))
+                    ((null? store1) (error-msg "The store is not having it!"))
                     ((zero? ref1) (cons val (cdr store1)))
                     (else (cons (car store1) (setref-inner (cdr store1) (- ref1 1))))))])
                 (setref-inner the-store ref)))))
 
 
-(define getref!
-    (lambda (val)
-        (if (apply-stack! val) (apply-stack! val) 
-            (let ([ref  (newref val)])
-                (begin (extend-stack! val ref) ref)))))
+; (define getref!
+;     (lambda (val)
+;         (if (apply-stack! val) (apply-stack! val) 
+;             (let ([ref  (newref val)])
+;                 (begin (extend-stack! val ref) ref)))))
 
+(define getref!
+    (lambda (val) (let ([ref  (newref val)])
+                (begin (extend-stack! val ref) ref))))
 
 
 (define (report-invalid-reference ref the-stor)
-    (print "Store not having it today!"))
+    (error-msg "Store not having it today!"))
 
 
 

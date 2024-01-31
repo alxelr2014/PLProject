@@ -15,7 +15,7 @@
     (cont)
     (brk)
     (re-void)
-    (re-val (expr expression?)))
+    (re-val (expr expval?)))
 
 
 (define-datatype stack stack?
@@ -91,7 +91,9 @@
     cases stack main-stack
         (empty-stack () (println "Bad stack type."))
         (push-stack (env prev typ)  typ))))
- 
+
+(define set-mainstack! (lambda (stck) (set! main-stack stck)))
+
 (define-datatype thunks thunks?
     (a-thunk (expr expression?) (stck stack?)))
 

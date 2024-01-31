@@ -73,15 +73,14 @@
       (num-val (num) num)
       (bool-val (bool) bool)
       (list-val (lst) (expr*->list lst))
-      (null-val () null)
-      (else (println "Not a expval")))))
+      (null-val () null))))
 
 (define scheme->expval
   (lambda (val)
     (cond
       [(number? val) (num-val val)]
       [(boolean? val) (bool-val val)]
-      [(list? val) (list->expr* val)]
+      [(list? val) (list-val (list->expr* val))]
       [(null? val) (null-val)])))
 
 (provide (all-defined-out))

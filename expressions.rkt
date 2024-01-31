@@ -10,82 +10,109 @@
 (lazy-require ["interpreter.rkt" (value-of-stm-list)])
 (require racket/trace)
 
-
-(define (value-of-exp expr)
+; turns expression to expval
+(define (value-of-exp expr stck)
     (cases expression expr
-        (binary_op (op left right) (binop op left right))
-        (unary_op (op operand) (unop op operand))
-        (function_call (func params) (func-call func params))
-        (list_ref (ref index) null)
-        (ref (var) (ref-var var))
+        (binary_op (op left right) (binop op left right stck))
+        (unary_op (op operand) (unop op operand stck))
+        (function_call (func params) (func-call func params stck))
+        (list_ref (ref index) (ref-list ref index stck))
+        (ref (var) (ref-var var stck))
         (atomic_bool_exp (bool) (bool-val bool))
         (atomic_num_exp (num) (num-val num))
         (atomic_null_exp () (null-val))
         (atomic_list_exp (l) (list-val l))
-        (else (println "error in expression."))
+        (else (error-msg "Not a valid expression."))
     ))
 
-(define (lazy-eval expr)
-    (cases expression expr
-        (binary_op (op left right) (binary_op op (lazy-eval left) (lazy-eval right)))
-        (unary_op (op operand) (unary_op op (lazy-eval operand)))
-        (function_call (func params) (func-call func params))
-        (list_ref (ref index) (list_ref ref (lazy-eval index)))
-        (ref (var) (lazy-eval (deref (apply-stack! var))))
-        (atomic_list_exp (l) null)
-        (else expr)))
+
+(define (value-of-thunk thk)
+    (cases thunks thk
+        (a-thunk (expr stck) (value-of-exp expr stck))))
 
 
-(define (binop op left right)
-    (let ([val-left (expval->scheme (value-of-exp left ))]
-        [val-right (expval->scheme (value-of-exp right))])
-            (scheme->expval (op val-left val-right))))
+(define (can-lazy-binop op left stck)
+    (let 
+        ([val-left (expval->scheme (value-of-exp left stck))])
+        (cond 
+            [(and (eqv? op *) (number? val-left) (zero? val-left)) #t]
+            [else #f])))
 
-(define (unop op operand)
-    (let ([val-operand (expval->scheme (value-of-exp operand ))])
-        (scheme->expval (op val-operand))))
 
-(define (ref-var var)
-    (let ([refe (apply-stack! var)])
-        (let ([expr (deref refe)])
-            (value-of-exp expr))))
+(define (operand-type left right)
+    (or (and (number? left) (number? right)) (and (boolean? left) (boolean? right)) (and (list? left) (list? right))))
 
-(define (set-param param expr)
-    (setref! (getref! param) expr))
+(define (binary-operator-type optr opnd)
+    (cond
+        [(is-in-operator optr (list +))  (or (number? opnd) (list? opnd))]
+        [(is-in-operator  optr (list - * / expt < > equal?))  (number? opnd)]
+        [else (boolean? opnd)]))
 
-(define (set-params def-params act-params)
+(define (binop op left right stck)
+    (if (can-lazy-binop op left stck) 
+        (if (eqv? op *)
+            (scheme->expval 0) null)
+        (let ([val-left (expval->scheme (value-of-exp left stck))]
+            [val-right (expval->scheme (value-of-exp right stck))])
+            (cond
+                [(not  (operand-type val-left val-right)) (error-msg "Operands are not the same type." (list op val-left val-right))]
+                [(not  (binary-operator-type op val-left)) (error-msg "Operator and Operands are not the same type." (list op val-left val-right))]
+                [(and (eqv? op +) (list? val-left)) (scheme->expval (append val-left val-right))]
+                [else (scheme->expval (op val-left val-right))]))))
+
+(define (unop op operand stck)
+    (let ([val-operand (expval->scheme (value-of-exp operand stck))])
+        (if (number? val-operand) (scheme->expval (op val-operand)) (error-msg "Unary operator only applies to numbers." (list op operand)))))
+
+(define (ref-var var stck)
+    (let ([refe (apply-stack stck var)])
+        (let ([thk (deref refe)])
+            (value-of-thunk thk))))
+
+(define (ref-list ref index stack) null)
+
+(define (set-param param expr stck)
+    (setref! (getref! param) (a-thunk expr stck)))
+
+(define (set-params def-params act-params stck)
     (if (null? def-params) null
         (cases func_param (car def-params) 
                 (with_default (var expr) 
                     (if (null? act-params)
                         (begin 
-                            (set-param var expr)
-                            (set-params (cdr def-params) act-params))
+                            (set-param var expr stck)
+                            (set-params (cdr def-params) act-params stck))
                         (begin
-                            (set-param var (car act-params))
-                            (set-params (cdr def-params) (cdr act-params))))))))
+                            (set-param var (car act-params) stck)
+                            (set-params (cdr def-params) (cdr act-params) stck)))))))
 
-(define (get-function-statement funct)
+(define (get-function-statement funct stck)
     (cases expression funct
-        (ref (var) (deref (getref! var)))
-        (else (println "error in function name."))
+        (ref (var) (deref (apply-stack stck var)))
+        (else (error-msg "Procedure name is invalid."))
     ))
 
-(define (func-call funct params)
-    (let ([func-def (get-function-statement funct)])
-        (cases statement  func-def
+(define (func-call funct params stck)
+    (let ([func-def (get-function-statement funct stck)])
+        (cases statement func-def
             (func (name param stmts)
-                (begin
-                (new-stack! (funct-block))
-                (set-params (param*->list param)  (expr*->list params))
-                (new-stack! (normal-block))
-                (value-of-stm-list stmts)
-                (cases flow-control (get-controller!)
-                    (re-val (expr) (begin (set-controller! (non)) expr))
-                    (re-void () (set-controller! (non)))
-                    (else (println "Non returning function!")))))
-            (else (println "Bad function call")))))
+                (let ([copy-stack '()])
+                (begin 
+                    (set! copy-stack main-stack)
+                    (set-mainstack! stck)
+                    (new-stack! (funct-block))
+                    (set-params (param*->list param)  (expr*->list params) stck)
+                    (new-stack! (normal-block))
+                    (value-of-stm-list stmts)
+                    (set-mainstack!  copy-stack)
+                    (cases flow-control (get-controller!)
+                        (re-val (expr) (begin (set-controller! (non)) expr))
+                        (re-void () (set-controller! (non)))
+                        (else null)))))
+            (else (error-msg "Invalid expression for a function call.")))))
+
 (if etracing (begin 
 (trace value-of-exp)
-(trace func-call)) (println "Expression tracking is off"))
+(trace value-of-thunk)
+(trace func-call)) (println "Expression tracing is off"))
 (provide (all-defined-out))
