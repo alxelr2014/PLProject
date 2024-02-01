@@ -49,6 +49,10 @@
   (expressions (expr expression?) (rest-exprs expression*?))
   )
 
+(define-datatype expval* expval*?
+  (empty-expv)
+  (expvals (expr expval?) (rest-expvals expval*?))
+  )
 
 (define-datatype expval expval?
   (num-val
@@ -56,7 +60,7 @@
   (bool-val
     (bool boolean?))
   (null-val)
-  (list-val (lst expression*?)))
+  (list-val (lst expval*?)))
 
 (define (expr*->list lst)
   (cases expression* lst
@@ -67,20 +71,46 @@
   (if (null? lst) (empty-expr) 
     (expressions (car lst) (list->expr* (cdr lst)))))
 
+(define (expv*->list lst)
+  (cases expval* lst
+    (empty-expv () null)
+    (expvals (expv rest-expvs) (append (expv*->list rest-expvs)  (list expv)))))
+
+
+(define (list->expv* lst)
+  (list->expv*-temp (reverse lst)))
+
+(define (list->expv*-temp lst)
+  (if (null? lst) (empty-expv) 
+    (expvals (car lst) (list->expv*-temp (cdr lst)))))
+
 (define expval->scheme
   (lambda (val)
     (cases expval val
       (num-val (num) num)
       (bool-val (bool) bool)
-      (list-val (lst) (expr*->list lst))
+      (list-val (lst) (expv*->list lst))
       (null-val () null))))
+
+
+(define (expv*->expr* expvs)
+  (cases expval* expvs
+    (empty-expv () (empty-expr))
+    (expvals (expv rest-expvs) 
+    (expressions
+      (cases expval expv
+        (num-val (num) (atomic_num_exp num))
+        (bool-val (bool) (atomic_bool_exp (bool)))
+        (list-val (lst) (atomic_list_exp (expv*->expr* lst)))
+        (null-val () (atomic_null_exp))) (expv*->expr* rest-expvs)))))
+
 
 (define scheme->expval
   (lambda (val)
     (cond
       [(number? val) (num-val val)]
       [(boolean? val) (bool-val val)]
-      [(list? val) (list-val (list->expr* val))]
+      [(list? val) (list-val (list->expv* val))]
       [(null? val) (null-val)])))
 
 (provide (all-defined-out))

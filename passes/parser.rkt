@@ -7,6 +7,7 @@
 
 (require "../datatypes.rkt")
 (#%require "../datatypes.rkt")
+(require "../helper.rkt")
 
 (define python-parser
   (parser
@@ -55,10 +56,10 @@
     (For_stmt ((FOR ID IN Expression COLON Statements) (for_stmt $2 $4 $6)))
     (Expression ((Disjunction) $1))
     (Disjunction ((Conjunction) $1)
-                 ((Disjunction OR Conjunction) (binary_op (lambda (x y) (or x y)) $1 $3))
+                 ((Disjunction OR Conjunction) (binary_op bor $1 $3))
                  )
     (Conjunction ((Inversion) $1)
-                 ((Conjunction AND Inversion) (binary_op (lambda (x y) (and x y)) $1 $3))
+                 ((Conjunction AND Inversion) (binary_op band $1 $3))
                  )
     (Inversion ((NOT Inversion) (unary_op not $2))
                ((Comparison) $1)
@@ -71,7 +72,7 @@
     (Eq_Sum ((Sum ISEQ Sum) (binary_op equal? $1 $3)))
     (Lt_Sum ((Sum LT Sum) (binary_op < $1 $3)))
     (Gt_Sum ((Sum BT Sum) (binary_op > $1 $3)))
-    (Sum ((Sum PLUS Term) (binary_op (lambda (x y) (if (number? x) (+ x y) (append x y))) $1 $3))
+    (Sum ((Sum PLUS Term) (binary_op add $1 $3))
          ((Sum MINUS Term) (binary_op - $1 $3))
          ((Term) $1)
          )

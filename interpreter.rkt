@@ -33,7 +33,7 @@
 (define (value-of-stm stm)
     (begin 
     ;(println stm)
-    ;(print-state)
+    ;(println main-stack)
     (cases statement stm
         (assign (var expr) (assignment var expr))
         (global (var) (glob var))
@@ -63,21 +63,21 @@
         (num-val (num) (display num))
         (bool-val (bool) (if bool (display "True") (display "False")))
         (null-val () (display "None"))
-        (list-val (l) (begin (display "[") (printer l) (display "]")))))
+        (list-val (l) (begin (display "[") (print-expval* l) (display "]")))))
 
 (define (printer-init exprs)
-    (begin (display "Print: ") (printer exprs) (displayln "")))
+    (begin(display "Print: ")  (print-expval* (list->expv* (map (lambda(ex) (value-of-exp ex main-stack)) (expr*->list exprs)))) (displayln "")))
 
-(define (printer exprs)
-    (cases expression* exprs
-        (empty-expr () null)
-        (expressions (expr rest-exprs) 
+(define (print-expval* exprs)
+    (cases expval* exprs
+        (empty-expv () null)
+        (expvals (expv rest-expv) 
             (begin  
-                (printer rest-exprs) 
-                (cases expression* rest-exprs 
-                    (empty-expr () null)
-                    (expressions (ex1 res1) (display ", ")))
-                (print-expval (value-of-exp expr main-stack))))))
+                (print-expval* rest-expv) 
+                (cases expval* rest-expv
+                    (empty-expv () null)
+                    (expvals (ex1 res1) (display ", ")))
+                (print-expval expv)))))
 
 (define (if-stms cond_exp if_sts else_sts)
     (let ([cond_result (value-of-exp cond_exp main-stack)])
@@ -89,24 +89,24 @@
             (else (error-msg "Non boolean if condition!")))))
 
 (define (for-init iter list_exp sts)
-    (let ([eval_list (expval->scheme (value-of-exp list_exp main-stack ))])
+    (let ([eval_list (expr*->list (expv*->expr* (cases expval (value-of-exp list_exp main-stack )
+                                                            (list-val (l) l)
+                                                            (else (error-msg "Non list for iteration!")))))])
         (for-stms iter eval_list sts)))
 
 (define (for-stms iter eval_list sts)
-    (if (list? eval_list)
-        (if (null? eval_list) null 
-            (begin 
-                (new-stack! (for-block))
-                (setref! (getref! iter) (a-thunk (car eval_list) main-stack))
-                (new-stack! (normal-block))
-                (value-of-stm-list sts)
-                (cases flow-control (get-controller!)
-                        (cont () (begin
-                            (set-controller! (non))
-                            (for-stms iter (cdr eval_list) sts)))
-                        (brk () (set-controller! (non)))
-                        (else (for-stms iter (cdr eval_list) sts)))))
-        (error-msg "Non list for iteration!")))
+    (if (null? eval_list) null 
+        (begin 
+            (new-stack! (for-block))
+            (setref! (getref! iter) (a-thunk (car eval_list) main-stack))
+            (new-stack! (normal-block))
+            (value-of-stm-list sts)
+            (cases flow-control (get-controller!)
+                    (cont () (begin
+                        (set-controller! (non))
+                        (for-stms iter (cdr eval_list) sts)))
+                    (brk () (set-controller! (non)))
+                    (else (for-stms iter (cdr eval_list) sts))))))
                 
 
 (define (func-stms name params statements)

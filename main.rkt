@@ -3,7 +3,6 @@
 (require "passes/parser.rkt")
 (require "passes/lexer.rkt")
 (require "interpreter.rkt")
-
 (define (parse-scan prog-string)
   (python-parser (lex-this prog-string))
   )
@@ -12,6 +11,5 @@
   (let ([parsed (parse-scan (string-join (file->lines file-name)))])
     (value-of-program parsed)))
 
-(evaluate "simples/func.py")
-
+(evaluate "simples/global.py")
 (provide (all-defined-out))

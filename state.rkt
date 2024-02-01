@@ -42,15 +42,20 @@
 ;                 (begin (extend-stack! val ref) ref)))))
 
 (define getref!
-    (lambda (val) (let ([ref  (newref val)])
-                (begin (extend-stack! val ref) ref))))
+    (lambda (val) 
+        (let ([info (apply-stack-info! val)] [ref  (newref val)])
+            (if (cadr info) 
+                (begin (extend-stack-info! val ref (car info)) ref)
+                (begin (extend-stack! val ref) ref)))))
 
 
 (define (report-invalid-reference ref the-stor)
     (error-msg "Store not having it today!"))
 
 
+(define print-store (lambda ()
+    (map println the-store)))
 
-(define print-state (lambda () (begin (displayln " ") (println "The current state is:") (println (get-controller!)) (println main-stack) (println the-store) (displayln " "))))
+(define print-state (lambda () (begin (displayln " ") (println "The current state is:") (println (get-controller!)) (println main-stack) (print-store) (displayln " "))))
 
 (provide (all-defined-out))

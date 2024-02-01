@@ -21,7 +21,7 @@
         (atomic_bool_exp (bool) (bool-val bool))
         (atomic_num_exp (num) (num-val num))
         (atomic_null_exp () (null-val))
-        (atomic_list_exp (l) (list-val l))
+        (atomic_list_exp (l) (list-val (list->expv* (map (lambda (ex) (value-of-exp ex stck)) (expr*->list  l)))))
         (else (error-msg "Not a valid expression."))
     ))
 
@@ -36,6 +36,8 @@
         ([val-left (expval->scheme (value-of-exp left stck))])
         (cond 
             [(and (eqv? op *) (number? val-left) (zero? val-left)) #t]
+            [(and (eqv? op bor) (boolean? val-left) val-left) #t]
+            [(and (eqv? op band) (boolean? val-left) (not val-left)) #t]
             [else #f])))
 
 
@@ -44,20 +46,21 @@
 
 (define (binary-operator-type optr opnd)
     (cond
-        [(is-in-operator optr (list +))  (or (number? opnd) (list? opnd))]
+        [(is-in-operator optr (list add))  (or (number? opnd) (list? opnd))]
         [(is-in-operator  optr (list - * / expt < > equal?))  (number? opnd)]
-        [else (boolean? opnd)]))
+        [(is-in-operator optr (list not bor band)) (boolean? opnd)]))
 
 (define (binop op left right stck)
     (if (can-lazy-binop op left stck) 
-        (if (eqv? op *)
-            (scheme->expval 0) null)
+        (cond
+            [(eqv? op *) (scheme->expval 0)]
+            [(eqv? op band) (scheme->expval #t)]
+            [(eqv? op bor) (scheme->expval #f)])
         (let ([val-left (expval->scheme (value-of-exp left stck))]
             [val-right (expval->scheme (value-of-exp right stck))])
             (cond
                 [(not  (operand-type val-left val-right)) (error-msg "Operands are not the same type." (list op val-left val-right))]
                 [(not  (binary-operator-type op val-left)) (error-msg "Operator and Operands are not the same type." (list op val-left val-right))]
-                [(and (eqv? op +) (list? val-left)) (scheme->expval (append val-left val-right))]
                 [else (scheme->expval (op val-left val-right))]))))
 
 (define (unop op operand stck)
@@ -104,7 +107,8 @@
                     (set-params (param*->list param)  (expr*->list params) stck)
                     (new-stack! (normal-block))
                     (value-of-stm-list stmts)
-                    (set-mainstack!  copy-stack)
+                    (pop-stack!)
+                    (fupdate-mainstack! copy-stack)
                     (cases flow-control (get-controller!)
                         (re-val (expr) (begin (set-controller! (non)) expr))
                         (re-void () (set-controller! (non)))
@@ -114,5 +118,6 @@
 (if etracing (begin 
 (trace value-of-exp)
 (trace value-of-thunk)
+(trace binary-operator-type)
 (trace func-call)) (println "Expression tracing is off"))
 (provide (all-defined-out))
