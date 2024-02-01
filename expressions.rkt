@@ -72,7 +72,15 @@
         (let ([thk (deref refe)])
             (value-of-thunk thk))))
 
-(define (ref-list ref index stack) null)
+(define (ref-list ref index stck) 
+    (let ([val-ind (expval->scheme (value-of-exp index stck))]
+        [val-list (expval->scheme (value-of-exp ref stck))])
+        (cond
+            [(not (number? val-ind)) (error-msg "An index must be a number.")]
+            [(not (>= val-ind 0)) (error-msg "Index must be nonnegative.")]
+            [(not (list? val-list)) (error-msg "Variable is not a list" (list ref))]
+            [(>= val-ind (length val-list)) (error-msg "Index is out of bound." (list ref index))]
+            [(list-ref val-list val-ind)])))
 
 (define (set-param param expr stck)
     (setref! (getref! param) (a-thunk expr stck)))
