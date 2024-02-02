@@ -10,5 +10,5 @@ def func(x = 3):
     return hi;;
 t = func(2);
 z = [2] + [hi];
-print(hi, func(4),hi,z,t);
+print(hi, func(4),hi);
 

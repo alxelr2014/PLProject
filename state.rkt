@@ -45,7 +45,7 @@
     (lambda (val) 
         (let ([info (apply-stack-info! val)] [ref  (newref val)])
             (if (cadr info) 
-                (begin (extend-stack-info! val ref (car info)) ref)
+                (begin ( extend-stack-info! val ref (car info)) ref)
                 (begin (extend-stack! val ref) ref)))))
 
 

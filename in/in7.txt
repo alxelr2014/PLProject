@@ -1,0 +1,23 @@
+global x;
+x = 0;
+
+def local_inc(y=0):
+	y = y + 1;
+	return y;
+;
+
+def global_inc(x=0):
+	x = x + 1;
+	return x;
+;
+
+print(local_inc(x));
+print(global_inc(x));
+print(local_inc());
+print(global_inc());
+print(local_inc(x));
+print(global_inc(x));
+print(local_inc(x));
+print(local_inc());
+print(global_inc(x));
+print(global_inc());

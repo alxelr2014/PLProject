@@ -23,7 +23,7 @@
 
 ; evaluate a block of statements
 (define (value-of-stm-list stmlist)
-        (if (null? stmlist) (pop-stack!)
+        (if (null? stmlist) (begin(pop-stack!)); (print-state))
             (if (signal-checker) (value-of-stm-list (cdr stmlist))
                 (begin 
                     (value-of-stm (car stmlist))
@@ -33,7 +33,7 @@
 (define (value-of-stm stm)
     (begin 
     ;(println stm)
-    ;(println main-stack)
+    ;(print-state)
     (cases statement stm
         (assign (var expr) (assignment var expr))
         (global (var) (glob var))
@@ -66,7 +66,7 @@
         (list-val (l) (begin (display "[") (print-expval* l) (display "]")))))
 
 (define (printer-init exprs)
-    (begin(display "Print: ")  (print-expval* (list->expv* (map (lambda(ex) (value-of-exp ex main-stack)) (expr*->list exprs)))) (displayln "")))
+    (begin  (print-expval* (list->expv* (map (lambda(ex) (value-of-exp ex main-stack)) (expr*->list exprs)))) (displayln "")))
 
 (define (print-expval* exprs)
     (cases expval* exprs
@@ -101,6 +101,7 @@
             (setref! (getref! iter) (a-thunk (car eval_list) main-stack))
             (new-stack! (normal-block))
             (value-of-stm-list sts)
+            (pop-stack!)
             (cases flow-control (get-controller!)
                     (cont () (begin
                         (set-controller! (non))
@@ -110,7 +111,7 @@
                 
 
 (define (func-stms name params statements)
-    (setref! (getref! name) (func name params statements)))
+    (setref! (getref! (string-append "#" name)) (func name params statements)))
 
 
 (define (ret-value expr)
@@ -146,6 +147,7 @@
 (trace value-of-program)
 (trace value-of-stm)
 (trace value-of-stm-list)
+(trace print-expval)
 (trace signal-checker)) (println "Intrepeter tracing is off"))
 
 (provide (all-defined-out))

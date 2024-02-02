@@ -109,7 +109,7 @@
                     (push-stack (env prev type)
                         (cases stack prev
                             (empty-stack () (extend-stack var val stck))
-                            (push-stack (env prev type) (push-stack env (go-down prev)) type )))
+                            (push-stack (env prev type) (push-stack env (go-down prev) type ))))
                     (empty-stack () (error-msg "Bad global stack keeping"))))])
                 (go-down main-stack)))))
 
@@ -134,12 +134,13 @@
 (define (construct-stack old-stack new-stack)
     (let ([size-old (size-of-stack old-stack)]
         [size-new (size-of-stack new-stack)])
-        (if (>= size-old size-new) 
-            (replace-stack old-stack new-stack (- size-old size-new))
-            (error-msg "Index of stack is out of bound."))))
+        (cond
+            [(> size-old size-new) (replace-stack old-stack new-stack (- size-old size-new))]
+            [(= size-old size-new) old-stack]
+            [else old-stack])))
 
 (define set-mainstack! (lambda (stck) (set! main-stack stck)))
-(define fupdate-mainstack! (lambda (stck) (set! main-stack (construct-stack stck main-stack))))
+(define fupdate-mainstack! (lambda (stck) (set! main-stack (construct-stack stck  main-stack))))
 
 (define-datatype thunks thunks?
     (a-thunk (expr expression?) (stck stack?)))
@@ -149,7 +150,7 @@
 (trace replace-stack)
 (trace construct-stack)
 (trace fupdate-mainstack!)
-;(trace extend-stack-info)
+(trace extend-stack-info)
 ) (println "Stack tracing is off"))
 
 

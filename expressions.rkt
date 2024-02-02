@@ -46,8 +46,9 @@
 
 (define (binary-operator-type optr opnd)
     (cond
+        [(is-in-operator optr (list equal?)) (or (boolean? opnd) (list? opnd) (number? opnd))]
         [(is-in-operator optr (list add))  (or (number? opnd) (list? opnd))]
-        [(is-in-operator  optr (list - * / expt < > equal?))  (number? opnd)]
+        [(is-in-operator  optr (list - * / expt < > ))  (number? opnd)]
         [(is-in-operator optr (list not bor band)) (boolean? opnd)]))
 
 (define (binop op left right stck)
@@ -65,7 +66,11 @@
 
 (define (unop op operand stck)
     (let ([val-operand (expval->scheme (value-of-exp operand stck))])
-        (if (number? val-operand) (scheme->expval (op val-operand)) (error-msg "Unary operator only applies to numbers." (list op operand)))))
+        (cond
+            [(and (number? val-operand) (is-in-operator op (list + -))) (scheme->expval (op val-operand))]
+            [(and (boolean? val-operand) (is-in-operator op (list not))) (scheme->expval (op val-operand))]
+            [else  (error-msg "Unary operator mismatch." (list op operand))])))
+            
 
 (define (ref-var var stck)
     (let ([refe (apply-stack stck var)])
@@ -99,7 +104,7 @@
 
 (define (get-function-statement funct stck)
     (cases expression funct
-        (ref (var) (deref (apply-stack stck var)))
+        (ref (var) (deref (apply-stack stck  (string-append "#" var))))
         (else (error-msg "Procedure name is invalid."))
     ))
 
@@ -118,9 +123,9 @@
                     (pop-stack!)
                     (fupdate-mainstack! copy-stack)
                     (cases flow-control (get-controller!)
-                        (re-val (expr) (begin (set-controller! (non)) expr))
-                        (re-void () (set-controller! (non)))
-                        (else null)))))
+                        (re-val (expv) (begin (set-controller! (non)) expv))
+                        (re-void () (begin (set-controller! (non)) (null-val)))
+                        (else (null-val))))))
             (else (error-msg "Invalid expression for a function call.")))))
 
 (if etracing (begin 

@@ -11,5 +11,5 @@
   (let ([parsed (parse-scan (string-join (file->lines file-name)))])
     (value-of-program parsed)))
 
-(evaluate "simples/lists.py")
+(evaluate "in/in15.txt")
 (provide (all-defined-out))
